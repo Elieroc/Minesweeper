@@ -31,7 +31,7 @@ int main(){
 
 
 	int nbRow = 20;
-	int nbCol = 20;
+	int nbCol = 25;
     int minePercent = 15;
     /*
 	do{
@@ -65,16 +65,15 @@ void SceneDisplay(int sceneArray[][SCENE_NB_COL_MAX], int nbRow, int nbCol){
 	// Dizaines
 	printf("   ");
 	for(m=0;m<nbCol;m++){
-		if(m%10==0) printf("%d ", m/10);
-		else printf("  ");
+		if(m%10==0) printf("%2d ", m/10);
+		else printf("   ");
 	}
 	printf("\n");
-	//
 
 	// Numéro de colonnes
 	printf("   ");
 	for(m=0;m<nbCol;m++){
-		printf("%d ", m%10);
+		printf("%2d ", m%10);
 	}
 	printf("\n");
 
@@ -111,17 +110,19 @@ void SceneDisplay(int sceneArray[][SCENE_NB_COL_MAX], int nbRow, int nbCol){
 	for(m=0;m<nbCol;m++){
 		printf("---");
 	}
+
+	// Numéro de colonnes
 	printf("\n");
 	printf("   ");
 	for(m=0;m<nbCol;m++){
-		printf("%d ", m%10);
+		printf("%2d ", m%10);
 	}
 	printf("\n");
 
 	printf("   ");
 	for(m=0;m<nbCol;m++){
-		if(m%10==0) printf("%d ", m/10);
-		else printf("  ");
+		if(m%10==0) printf("%2d ", m/10);
+		else printf("   ");
 	}
 	printf("\n");
 }
@@ -163,21 +164,16 @@ void SceneInit(int sceneArray[][SCENE_NB_COL_MAX], int nbRow, int nbCol, int per
 							if (sceneArray[k+x][m+y] == 9){
 								sceneArray[k][m]++;
 							}
-						}
-						else{
-							//printf("Collision détectée !\n");
-							continue;
-						}
-						
+						}						
 					}
 				}
 			}
 		}
 	}
-	// Masquage des cases
+	/* Masquage des cases
 	for(int k=0;k<nbRow;k++){
 		for(int m=0;m<nbCol;m++){
 			sceneArray[k][m] += SCENE_CELL_MASK_OFFSET;
 		}
-	}
+	}*/
 }
