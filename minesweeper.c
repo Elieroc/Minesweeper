@@ -170,10 +170,10 @@ void SceneInit(int sceneArray[][SCENE_NB_COL_MAX], int nbRow, int nbCol, int per
 			}
 		}
 	}
-	/* Masquage des cases
+	// Masquage des cases
 	for(int k=0;k<nbRow;k++){
 		for(int m=0;m<nbCol;m++){
 			sceneArray[k][m] += SCENE_CELL_MASK_OFFSET;
 		}
-	}*/
+	}
 }
