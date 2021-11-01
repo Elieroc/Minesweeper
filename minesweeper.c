@@ -28,6 +28,9 @@ Fin :
 void SceneDisplay(int sceneArray[][SCENE_NB_COL_MAX], int nbRow, int nbCol);
 void SceneInit(int sceneArray[][SCENE_NB_COL_MAX], int nbRow, int nbCol, int percent);
 int GetCommand(int *pIRow, int *pICol);
+int SceneDiscoverCell(int sceneArray[][SCENE_NB_COL_MAX], int nbRow, int nbCol, int atRow, int atCol);
+void SceneMaskCells(int sceneArray[][SCENE_NB_COL_MAX], int nbRow, int nbCol);
+void SceneUnmaskCells(int sceneArray[][SCENE_NB_COL_MAX], int nbRow, int nbCol);
 
 int main(){
     int sceneArray[SCENE_NB_ROW_MAX][SCENE_NB_COL_MAX];
@@ -39,7 +42,8 @@ int main(){
 	int nbCol = 25;
     int minePercent = 15;
 	int iRow, iCol;
-	int result;
+	int resultOfGC, resultOfSDC;
+	bool endOfGame = false;
     
 	/*
 	do{
@@ -62,28 +66,46 @@ int main(){
 	*/
 
     SceneInit(sceneArray, nbRow, nbCol, minePercent);
-    SceneDisplay(sceneArray, nbRow, nbCol);
-	
-	do{
-		printf("\nLimites des coo : [%d-%d][%d-%d]\n", 0, nbRow, 0, nbCol);
-		result = GetCommand(&iRow, &iCol);
-		printf("\n");
-	}
-	while ( (iRow<0) || (iRow>nbRow) || (iCol<0) || (iCol>nbCol));
+	while (endOfGame==false){
+		SceneDisplay(sceneArray, nbRow, nbCol);
+		do{
+			printf("\nLimites des coo : [%d-%d][%d-%d]\n", 0, nbRow, 0, nbCol);
+			resultOfGC = GetCommand(&iRow, &iCol);
+			printf("\n");
+		}
+		while ( (iRow<0) || (iRow>nbRow) || (iCol<0) || (iCol>nbCol));
 
-	switch(result){
-		case 0:
-			printf("Vous avez joué aux coo : [%d][%d]\n", iRow, iCol);
-			break;
-		case 1:
-			printf("Vous avez marqué un M aux coo : [%d][%d]\n", iRow, iCol);
-			break;
-		case 2:
-			printf("Vous avez marqué un ? aux coo : [%d][%d]\n", iRow, iCol);
-			break;
-		default:
-			printf("Entrée invalide\n");
-			break;
+		switch(resultOfGC){
+			// Cas du P :
+			case 0:
+				resultOfSDC = SceneDiscoverCell(sceneArray, nbRow, nbCol, iRow, iCol);
+				if (resultOfSDC == -1){
+					SceneUnmaskCells(sceneArray, nbRow, nbCol);
+					SceneDisplay(sceneArray, nbRow, nbCol);
+					printf("Dommage d'avoir perdu, après tout tu n'as que tes yeux pour pleurer :)\n");
+					return EXIT_SUCCESS;
+				}
+				else {
+					printf("Nombre de cells découvertes : %d", resultOfSDC);
+				}
+				break;
+			// Cas du M :
+			case 1:
+				printf("Vous avez marqué un M aux coo : [%d][%d]\n", iRow, iCol);
+				break;
+			// Cas du ? :
+			case 2:
+				printf("Vous avez marqué un ? aux coo : [%d][%d]\n", iRow, iCol);
+				break;
+			// Cas du Q :
+			case 3:
+				printf("Merci d'avoir joué ! Au revoir !\n");
+				return EXIT_SUCCESS;
+				break;
+			default:
+				printf("Entrée invalide\n");
+				break;
+		}
 	}
 
     return EXIT_SUCCESS;
@@ -128,7 +150,6 @@ void SceneDisplay(int sceneArray[][SCENE_NB_COL_MAX], int nbRow, int nbCol){
 			else{
 				printf(" . ");
 			}
-			
 		}
         // Affichage des "|"
         printf("|");
@@ -201,12 +222,8 @@ void SceneInit(int sceneArray[][SCENE_NB_COL_MAX], int nbRow, int nbCol, int per
 			}
 		}
 	}
-	// Masquage des cases
-	for(int k=0;k<nbRow;k++){
-		for(int m=0;m<nbCol;m++){
-			sceneArray[k][m] += SCENE_CELL_MASK_OFFSET;
-		}
-	}
+	// Masquage des cellules
+	SceneMaskCells(sceneArray, nbRow, nbCol);
 }
 
 int GetCommand(int *pIRow, int *pICol){
@@ -241,6 +258,10 @@ int GetCommand(int *pIRow, int *pICol){
 				case '?':
 					iReturnAction=2;
 					break;
+				case 'Q':
+				case 'q':
+					iReturnAction=3;
+					break;
 				default:
 					iReturnAction=-1;
 					break;
@@ -256,4 +277,58 @@ int GetCommand(int *pIRow, int *pICol){
 		}
 	}
 	return iReturnAction;
+}
+
+int SceneDiscoverCell(int sceneArray[][SCENE_NB_COL_MAX], int nbRow, int nbCol, int atRow, int atCol){
+	int nbDiscoversCells = 0;
+
+	if (sceneArray[atRow][atCol] < SCENE_CELL_MASK_OFFSET){
+		return 0;
+	}
+	else {
+		sceneArray[atRow][atCol]-=SCENE_CELL_MASK_OFFSET;
+		// Si il s'agit d'une mine
+		if (sceneArray[atRow][atCol] == 9) {
+			return -1;
+		}
+		if (sceneArray[atRow][atCol] > 0){
+			return 1;
+		}
+		if (sceneArray[atRow][atCol] == 0){
+				// Recherche
+				// x : Numéro de colonne relative à la case sélectionnée
+				// y : Numéro de ligne relative à la case sélectionnée
+				for (int y=-1; y<=1; y++){
+					for (int x=-1; x<=1; x++){
+						// On vérifie les collisions
+						if(  (atRow+y)>0 && (atCol+x)>0 || (atRow+y)<nbRow && (atCol+x)<nbCol ) {
+							nbDiscoversCells++;
+							if (sceneArray[atRow+x][atCol+y] > 9){
+								sceneArray[atRow+y][atCol+x] = sceneArray[atRow+y][atCol+x] % 10;
+								if (sceneArray[atRow+(y)][atCol+(x)] == 0){
+									SceneDiscoverCell(sceneArray, nbRow, nbCol, atRow+(x), atCol+(y));
+								}			
+							}			
+						}
+					}
+				}
+			return nbDiscoversCells;
+		}
+	}
+}
+
+void SceneMaskCells(int sceneArray[][SCENE_NB_COL_MAX], int nbRow, int nbCol){
+	for(int k=0;k<nbRow;k++){
+		for(int m=0;m<nbCol;m++){
+			sceneArray[k][m] += SCENE_CELL_MASK_OFFSET;
+		}
+	}
+}
+
+void SceneUnmaskCells(int sceneArray[][SCENE_NB_COL_MAX], int nbRow, int nbCol){
+	for(int k=0;k<nbRow;k++){
+		for(int m=0;m<nbCol;m++){
+			if (sceneArray[k][m]>=10) (sceneArray[k][m] -= SCENE_CELL_MASK_OFFSET);
+		}
+	}
 }
