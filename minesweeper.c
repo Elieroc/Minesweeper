@@ -23,6 +23,8 @@ Fin :
 #define SCENE_CELL_VOID_CHAR (' ') //Caractère espace
 #define SCENE_CELL_MASK_OFFSET (10)
 #define INPUT_BUFFER_LEN (32)
+#define SCENE_CELL_MARK_M_OFFSET (20)
+#define SCENE_CELL_MARK_I_OFFSET (30) // I for Interrogation ?
 
 
 void SceneDisplay(int sceneArray[][SCENE_NB_COL_MAX], int nbRow, int nbCol);
@@ -31,6 +33,7 @@ int GetCommand(int *pIRow, int *pICol);
 int SceneDiscoverCell(int sceneArray[][SCENE_NB_COL_MAX], int nbRow, int nbCol, int atRow, int atCol);
 void SceneMaskCells(int sceneArray[][SCENE_NB_COL_MAX], int nbRow, int nbCol);
 void SceneUnmaskCells(int sceneArray[][SCENE_NB_COL_MAX], int nbRow, int nbCol);
+void SceneToggleMarkCell(int sceneArray[][SCENE_NB_COL_MAX], int atRow, int atCol, int markOffset);
 
 int main(){
     int sceneArray[SCENE_NB_ROW_MAX][SCENE_NB_COL_MAX];
@@ -71,6 +74,7 @@ int main(){
 		do{
 			printf("\nLimites des coo : [%d-%d][%d-%d]\n", 0, nbRow, 0, nbCol);
 			resultOfGC = GetCommand(&iRow, &iCol);
+			printf("\nVous avez joué en [%d][%d]", iRow, iCol);
 			printf("\n");
 		}
 		while ( (iRow<0) || (iRow>nbRow) || (iCol<0) || (iCol>nbCol));
@@ -78,24 +82,30 @@ int main(){
 		switch(resultOfGC){
 			// Cas du P :
 			case 0:
+				if (sceneArray[iRow][iCol]>=SCENE_CELL_MARK_M_OFFSET) {
+					printf("\n/!\\ Merci d'enlever le flag de la case avant de la jouer !\n");
+					break;
+				}
 				resultOfSDC = SceneDiscoverCell(sceneArray, nbRow, nbCol, iRow, iCol);
 				if (resultOfSDC == -1){
 					SceneUnmaskCells(sceneArray, nbRow, nbCol);
 					SceneDisplay(sceneArray, nbRow, nbCol);
-					printf("Dommage d'avoir perdu, après tout tu n'as que tes yeux pour pleurer :)\n");
+					printf("\n /!\\ Dommage d'avoir perdu, après tout il ne te reste plus que tes yeux pour pleurer :)\n");
 					return EXIT_SUCCESS;
 				}
 				else {
-					printf("Nombre de cells découvertes : %d", resultOfSDC);
+					printf("Nombre de cells découvertes : %d\n", resultOfSDC);
 				}
 				break;
 			// Cas du M :
 			case 1:
-				printf("Vous avez marqué un M aux coo : [%d][%d]\n", iRow, iCol);
+				printf("\nVous avez marqué un M aux coo : [%d][%d]\n", iRow, iCol);
+				SceneToggleMarkCell(sceneArray, iRow, iCol, SCENE_CELL_MARK_M_OFFSET);
 				break;
 			// Cas du ? :
 			case 2:
 				printf("Vous avez marqué un ? aux coo : [%d][%d]\n", iRow, iCol);
+				SceneToggleMarkCell(sceneArray, iRow, iCol, SCENE_CELL_MARK_I_OFFSET);
 				break;
 			// Cas du Q :
 			case 3:
@@ -148,7 +158,15 @@ void SceneDisplay(int sceneArray[][SCENE_NB_COL_MAX], int nbRow, int nbCol){
 				printf("%2d ", sceneArray[k][m]);
 			}
 			else{
-				printf(" . ");
+				if (sceneArray[k][m]>=SCENE_CELL_MASK_OFFSET && sceneArray[k][m]<SCENE_CELL_MARK_M_OFFSET){
+					printf(" . ");
+				}
+				else if (sceneArray[k][m]>=SCENE_CELL_MARK_M_OFFSET && sceneArray[k][m]<SCENE_CELL_MARK_I_OFFSET){
+					printf(" M ");
+				} 
+				else if (sceneArray[k][m]>=SCENE_CELL_MARK_I_OFFSET) {
+					printf(" ? ");
+				}
 			}
 		}
         // Affichage des "|"
@@ -328,7 +346,56 @@ void SceneMaskCells(int sceneArray[][SCENE_NB_COL_MAX], int nbRow, int nbCol){
 void SceneUnmaskCells(int sceneArray[][SCENE_NB_COL_MAX], int nbRow, int nbCol){
 	for(int k=0;k<nbRow;k++){
 		for(int m=0;m<nbCol;m++){
-			if (sceneArray[k][m]>=10) (sceneArray[k][m] -= SCENE_CELL_MASK_OFFSET);
+			if (sceneArray[k][m]>=SCENE_CELL_MASK_OFFSET && sceneArray[k][m] < SCENE_CELL_MARK_M_OFFSET) {
+				sceneArray[k][m] -= SCENE_CELL_MASK_OFFSET;
+			}
+			else if (sceneArray[k][m]>=SCENE_CELL_MARK_M_OFFSET && sceneArray[k][m] < SCENE_CELL_MARK_I_OFFSET){
+				sceneArray[k][m] -= SCENE_CELL_MARK_M_OFFSET;
+				sceneArray[k][m] -= SCENE_CELL_MASK_OFFSET;
+			}
+			else if (sceneArray[k][m]>=SCENE_CELL_MARK_I_OFFSET){
+				sceneArray[k][m] -= SCENE_CELL_MARK_I_OFFSET;
+				sceneArray[k][m] -= SCENE_CELL_MASK_OFFSET;
+			}
+		}
+	}
+}
+
+void SceneToggleMarkCell(int sceneArray[][SCENE_NB_COL_MAX], int atRow, int atCol, int markOffset){
+	if (sceneArray[atRow][atCol] < SCENE_CELL_MASK_OFFSET){
+		return;
+	}
+	else{
+		// Si il n'y a pas de marquage
+		if (sceneArray[atRow][atCol] < SCENE_CELL_MARK_M_OFFSET){
+			// On modifie l'offset pour rendre correcte la valeur de la case lorsqu'on va la modifier
+			markOffset-=SCENE_CELL_MASK_OFFSET;
+			sceneArray[atRow][atCol]+=markOffset;
+			return;
+		}
+		// Si on demande d'enlever le marquage M
+		if (sceneArray[atRow][atCol]>=SCENE_CELL_MARK_M_OFFSET && (sceneArray[atRow][atCol]<SCENE_CELL_MARK_I_OFFSET) && (markOffset==SCENE_CELL_MARK_M_OFFSET) ){
+			markOffset-=SCENE_CELL_MASK_OFFSET;
+			sceneArray[atRow][atCol]-=markOffset;
+			return;
+		}
+		// Si on demande d'enlever le marquage ?
+		if (sceneArray[atRow][atCol]>=SCENE_CELL_MARK_I_OFFSET && (markOffset==SCENE_CELL_MARK_I_OFFSET)){
+			markOffset-=SCENE_CELL_MASK_OFFSET;
+			sceneArray[atRow][atCol]-=markOffset;
+			return;
+		}
+		// Si on demande de mettre un marquage ? alors qu'il y a déjà un M
+		if (sceneArray[atRow][atCol]>=SCENE_CELL_MARK_M_OFFSET && (sceneArray[atRow][atCol]<SCENE_CELL_MARK_I_OFFSET) && (markOffset==SCENE_CELL_MARK_I_OFFSET)){
+			sceneArray[atRow][atCol]-=SCENE_CELL_MARK_M_OFFSET;
+			sceneArray[atRow][atCol]+=markOffset;
+			return;
+		}
+		// Si on demande de mettre un marquage M alors qu'il y a déjà un ?
+		if (sceneArray[atRow][atCol]>=SCENE_CELL_MARK_I_OFFSET && (markOffset==SCENE_CELL_MARK_M_OFFSET)){
+			sceneArray[atRow][atCol]-=SCENE_CELL_MARK_I_OFFSET;
+			sceneArray[atRow][atCol]+=markOffset;
+			return;
 		}
 	}
 }
