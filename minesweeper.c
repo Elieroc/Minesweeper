@@ -28,7 +28,7 @@ Fin :
 
 
 void SceneDisplay(int sceneArray[][SCENE_NB_COL_MAX], int nbRow, int nbCol);
-void SceneInit(int sceneArray[][SCENE_NB_COL_MAX], int nbRow, int nbCol, int percent);
+int SceneInit(int sceneArray[][SCENE_NB_COL_MAX], int nbRow, int nbCol, int percent);
 int GetCommand(int *pIRow, int *pICol);
 int SceneDiscoverCell(int sceneArray[][SCENE_NB_COL_MAX], int nbRow, int nbCol, int atRow, int atCol);
 void SceneMaskCells(int sceneArray[][SCENE_NB_COL_MAX], int nbRow, int nbCol);
@@ -197,7 +197,7 @@ void SceneDisplay(int sceneArray[][SCENE_NB_COL_MAX], int nbRow, int nbCol){
 	printf("\n");
 }
 
-void SceneInit(int sceneArray[][SCENE_NB_COL_MAX], int nbRow, int nbCol, int percent){
+int SceneInit(int sceneArray[][SCENE_NB_COL_MAX], int nbRow, int nbCol, int percent){
     // On initialise toutes les valeurs du tableau à "SCENE_CELL_VOID_VALUE"
     for(int k=0;k<nbRow;k++){
 		for(int m=0;m<nbCol;m++){
@@ -205,21 +205,18 @@ void SceneInit(int sceneArray[][SCENE_NB_COL_MAX], int nbRow, int nbCol, int per
 		}
 	}
     // Génération des mines
-    srand((unsigned int)time(NULL));
-    for(int k=0;k<nbRow;k++){
-		for(int m=0;m<nbCol;m++){
-			// On génère un nombre entre 1 et 100 inclut
-			int randCaseValue = rand()% 100 + 1;
-			// Et on transforme toutes les valeurs en dessous du pourcentage demandé en mine
-			if (randCaseValue<percent){
-				// Mine
-				sceneArray[k][m] = 9;
-			}
-			else{
-				sceneArray[k][m] = 0;
-			}
-		}
-	}
+    int nbMines = nbRow * nbCol * percent/100;
+	int nbSetMines = 0;
+	int x, y;
+    while(nbMines > nbSetMines){
+        x = rand()%nbRow;
+        y = rand()%nbCol;
+        if (sceneArray[x][y] != SCENE_MINE_VALUE){
+            sceneArray[x][y] = SCENE_MINE_VALUE;
+            nbSetMines++;
+        }
+    }
+
 	// Completion des cases adjacentes aux mines
 	for(int k=0;k<nbRow;k++){
 		for(int m=0;m<nbCol;m++){
@@ -242,6 +239,15 @@ void SceneInit(int sceneArray[][SCENE_NB_COL_MAX], int nbRow, int nbCol, int per
 	}
 	// Masquage des cellules
 	SceneMaskCells(sceneArray, nbRow, nbCol);
+
+	// Calcul du nombre de cellules à découvrir
+	int nbCellsToDiscover = 0;
+	for(int k=0;k<nbRow;k++){
+		for(int m=0;m<nbCol;m++){
+			nbCellsToDiscover++;
+		}
+	}
+	nbCellsToDiscover-=nbMines;
 }
 
 int GetCommand(int *pIRow, int *pICol){
