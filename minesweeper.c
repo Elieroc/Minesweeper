@@ -8,6 +8,8 @@ Fin :
 #include <stdlib.h>
 #include <time.h>
 #include <stdbool.h>
+#include <ctype.h>
+#include <string.h>
 
 #define SCENE_NB_ROW_MIN (4)
 #define SCENE_NB_COL_MIN (4)
@@ -20,9 +22,12 @@ Fin :
 #define SCENE_CELL_VOID_VALUE (0)
 #define SCENE_CELL_VOID_CHAR (' ') //Caractère espace
 #define SCENE_CELL_MASK_OFFSET (10)
+#define INPUT_BUFFER_LEN (32)
+
 
 void SceneDisplay(int sceneArray[][SCENE_NB_COL_MAX], int nbRow, int nbCol);
 void SceneInit(int sceneArray[][SCENE_NB_COL_MAX], int nbRow, int nbCol, int percent);
+int GetCommand(int *pIRow, int *pICol);
 
 int main(){
     int sceneArray[SCENE_NB_ROW_MAX][SCENE_NB_COL_MAX];
@@ -33,28 +38,53 @@ int main(){
 	int nbRow = 20;
 	int nbCol = 25;
     int minePercent = 15;
-    /*
+	int iRow, iCol;
+	int result;
+    
+	/*
 	do{
 		printf("Enter nbRow [%d ; %d]: ", SCENE_NB_ROW_MIN, SCENE_NB_ROW_MAX); 
-		scanf("\n%i", &nbRow);
+		scanf("%i", &nbRow);
 	}
 	while((nbRow<SCENE_NB_ROW_MIN)||(nbRow>SCENE_NB_ROW_MAX));
 
 	do{
 		printf("Enter nbCol [%d ; %d]: ", SCENE_NB_COL_MIN, SCENE_NB_COL_MAX); 
-		scanf("\n%i", &nbCol);
+		scanf("%i", &nbCol);
 	}
 	while((nbCol<SCENE_NB_ROW_MIN)||(nbCol>SCENE_NB_ROW_MAX));
 
     do{
 		printf("Enter percent of mines [%d ; %d]: ", SCENE_MINE_PERCENT_MIN, SCENE_MINE_PERCENT_MAX); 
-		scanf("\n%i", &minePercent);
+		scanf("%i", &minePercent);
 	}
 	while((minePercent<SCENE_MINE_PERCENT_MIN)||(minePercent>SCENE_MINE_PERCENT_MAX));
+	*/
 
-    */
     SceneInit(sceneArray, nbRow, nbCol, minePercent);
     SceneDisplay(sceneArray, nbRow, nbCol);
+	
+	do{
+		printf("\nLimites des coo : [%d-%d][%d-%d]\n", 0, nbRow, 0, nbCol);
+		result = GetCommand(&iRow, &iCol);
+		printf("\n");
+	}
+	while ( (iRow<0) || (iRow>nbRow) || (iCol<0) || (iCol>nbCol));
+
+	switch(result){
+		case 0:
+			printf("Vous avez joué aux coo : [%d][%d]\n", iRow, iCol);
+			break;
+		case 1:
+			printf("Vous avez marqué un M aux coo : [%d][%d]\n", iRow, iCol);
+			break;
+		case 2:
+			printf("Vous avez marqué un ? aux coo : [%d][%d]\n", iRow, iCol);
+			break;
+		default:
+			printf("Entrée invalide\n");
+			break;
+	}
 
     return EXIT_SUCCESS;
 }
@@ -63,6 +93,7 @@ void SceneDisplay(int sceneArray[][SCENE_NB_COL_MAX], int nbRow, int nbCol){
 	int k, m;
 
 	// Dizaines
+	printf("\n");
 	printf("   ");
 	for(m=0;m<nbCol;m++){
 		if(m%10==0) printf("%2d ", m/10);
@@ -176,4 +207,53 @@ void SceneInit(int sceneArray[][SCENE_NB_COL_MAX], int nbRow, int nbCol, int per
 			sceneArray[k][m] += SCENE_CELL_MASK_OFFSET;
 		}
 	}
+}
+
+int GetCommand(int *pIRow, int *pICol){
+	const char separators[]="\r\n ";
+	char buffer[INPUT_BUFFER_LEN];
+	char *pToken;
+	int iReturnAction;
+
+	*pIRow=*pICol=0;
+	printf("Entrer une commande : ");
+	fgets(buffer, INPUT_BUFFER_LEN, stdin);
+	pToken=strtok(buffer, separators);
+	if (pToken){
+		if (isdigit(pToken[0])){
+			*pIRow = atoi(pToken);
+			pToken=strtok(NULL, separators);
+			if (pToken){
+				*pICol=atoi(pToken);
+			}
+			iReturnAction=0;
+		}
+		else {
+			switch (pToken[0]){
+				case 'P':
+				case 'p':
+					iReturnAction=0;
+					break;
+				case 'M':
+				case 'm':
+					iReturnAction=1;
+					break;
+				case '?':
+					iReturnAction=2;
+					break;
+				default:
+					iReturnAction=-1;
+					break;
+			}
+			pToken=strtok(NULL, separators);
+			if (pToken){
+				*pIRow=atoi(pToken);
+				pToken=strtok(NULL, separators);
+				if (pToken){
+					*pICol=atoi(pToken);
+				}
+			}
+		}
+	}
+	return iReturnAction;
 }
