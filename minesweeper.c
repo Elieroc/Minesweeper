@@ -35,15 +35,26 @@ void SceneMaskCells(int sceneArray[][SCENE_NB_COL_MAX], int nbRow, int nbCol);
 void SceneUnmaskCells(int sceneArray[][SCENE_NB_COL_MAX], int nbRow, int nbCol);
 void SceneToggleMarkCell(int sceneArray[][SCENE_NB_COL_MAX], int atRow, int atCol, int markOffset);
 
-int main(){
+int main(int argc, char*argv[]){
+
     int sceneArray[SCENE_NB_ROW_MAX][SCENE_NB_COL_MAX];
+
+	// On vérifie les paramètres fournis
+	while ( (argc<3) || (atoi(argv[1])<SCENE_NB_ROW_MIN) || (atoi(argv[1])>SCENE_NB_ROW_MAX) || (atoi(argv[2])<SCENE_NB_ROW_MIN) || (atoi(argv[2])>SCENE_NB_ROW_MAX) || (atoi(argv[3])<SCENE_MINE_PERCENT_MIN) || (atoi(argv[3])>SCENE_MINE_PERCENT_MAX)){
+		printf("Merci de respecter la syntaxe suivante : \n");
+		printf("./minesweeper <nbLignes> <nbColones> <PourcentageMines>\r\n");
+		printf("\nNB lignes [%d-%d]\r\n", SCENE_NB_ROW_MIN, SCENE_NB_ROW_MAX);
+		printf("NB colonnes [%d-%d]\r\n", SCENE_NB_COL_MIN, SCENE_NB_COL_MAX);
+		printf("Pourcentage de mines [%d-%d]\r\n", SCENE_MINE_PERCENT_MIN, SCENE_MINE_PERCENT_MAX);
+		return -1;
+	}
 
 	printf("-------------ENTER APP--------------\n");
 
+	int nbRow = atoi(argv[1]);
+	int nbCol = atoi(argv[2]);
+    int minePercent = atoi(argv[3]);
 
-	int nbRow = 6;
-	int nbCol = 6;
-    int minePercent = 10;
 	int iRow, iCol;
 	int resultOfGC;
 	int nbDiscoversCells = 0;
@@ -140,7 +151,15 @@ void SceneDisplay(int sceneArray[][SCENE_NB_COL_MAX], int nbRow, int nbCol){
 		// Affichage des éléments
 		for(m=0;m<nbCol;m++){
 			if (sceneArray[k][m]<SCENE_CELL_MASK_OFFSET){
-				printf("%2d ", sceneArray[k][m]);
+				if (sceneArray[k][m] == 0) {
+					printf(" %c ", SCENE_CELL_VOID_CHAR);
+				}
+				else if (sceneArray[k][m] == 9) {
+					printf(" %c ", SCENE_MINE_CHAR);
+				}
+				else {
+					printf("%2d ", sceneArray[k][m]);
+				}
 			}
 			else{
 				if (sceneArray[k][m]>=SCENE_CELL_MASK_OFFSET && sceneArray[k][m]<SCENE_CELL_MARK_M_OFFSET){
