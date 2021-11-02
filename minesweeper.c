@@ -41,40 +41,21 @@ int main(){
 	printf("-------------ENTER APP--------------\n");
 
 
-	int nbRow = 20;
-	int nbCol = 25;
-    int minePercent = 15;
+	int nbRow = 6;
+	int nbCol = 6;
+    int minePercent = 10;
 	int iRow, iCol;
-	int resultOfGC, resultOfSDC;
-	bool endOfGame = false;
-    
-	/*
-	do{
-		printf("Enter nbRow [%d ; %d]: ", SCENE_NB_ROW_MIN, SCENE_NB_ROW_MAX); 
-		scanf("%i", &nbRow);
-	}
-	while((nbRow<SCENE_NB_ROW_MIN)||(nbRow>SCENE_NB_ROW_MAX));
+	int resultOfGC;
+	int nbDiscoversCells = 0;
 
-	do{
-		printf("Enter nbCol [%d ; %d]: ", SCENE_NB_COL_MIN, SCENE_NB_COL_MAX); 
-		scanf("%i", &nbCol);
-	}
-	while((nbCol<SCENE_NB_ROW_MIN)||(nbCol>SCENE_NB_ROW_MAX));
-
-    do{
-		printf("Enter percent of mines [%d ; %d]: ", SCENE_MINE_PERCENT_MIN, SCENE_MINE_PERCENT_MAX); 
-		scanf("%i", &minePercent);
-	}
-	while((minePercent<SCENE_MINE_PERCENT_MIN)||(minePercent>SCENE_MINE_PERCENT_MAX));
-	*/
-
-    SceneInit(sceneArray, nbRow, nbCol, minePercent);
-	while (endOfGame==false){
+    int nbCellsToDiscover = SceneInit(sceneArray, nbRow, nbCol, minePercent);
+	while (nbCellsToDiscover>0){
+		printf("\nNombre de cellules découvertes à ce tour: %d\n", nbDiscoversCells);
+		printf("Nombre de cellules à découvrir : %d\n", nbCellsToDiscover);
 		SceneDisplay(sceneArray, nbRow, nbCol);
 		do{
 			printf("\nLimites des coo : [%d-%d][%d-%d]\n", 0, nbRow, 0, nbCol);
 			resultOfGC = GetCommand(&iRow, &iCol);
-			printf("\nVous avez joué en [%d][%d]", iRow, iCol);
 			printf("\n");
 		}
 		while ( (iRow<0) || (iRow>nbRow) || (iCol<0) || (iCol>nbCol));
@@ -86,15 +67,16 @@ int main(){
 					printf("\n/!\\ Merci d'enlever le flag de la case avant de la jouer !\n");
 					break;
 				}
-				resultOfSDC = SceneDiscoverCell(sceneArray, nbRow, nbCol, iRow, iCol);
-				if (resultOfSDC == -1){
+				nbDiscoversCells = SceneDiscoverCell(sceneArray, nbRow, nbCol, iRow, iCol);
+				nbCellsToDiscover-=nbDiscoversCells;
+				if (nbDiscoversCells == -1){
 					SceneUnmaskCells(sceneArray, nbRow, nbCol);
 					SceneDisplay(sceneArray, nbRow, nbCol);
 					printf("\n /!\\ Dommage d'avoir perdu, après tout il ne te reste plus que tes yeux pour pleurer :)\n");
 					return EXIT_SUCCESS;
 				}
 				else {
-					printf("Nombre de cells découvertes : %d\n", resultOfSDC);
+					printf("\nVous avez joué en [%d][%d]", iRow, iCol);
 				}
 				break;
 			// Cas du M :
@@ -117,6 +99,9 @@ int main(){
 				break;
 		}
 	}
+	printf("\nBravo ! Vous méritez un demi bitcoin !\n");
+	SceneUnmaskCells(sceneArray, nbRow, nbCol);
+	SceneDisplay(sceneArray, nbRow, nbCol);
 
     return EXIT_SUCCESS;
 }
@@ -205,6 +190,7 @@ int SceneInit(int sceneArray[][SCENE_NB_COL_MAX], int nbRow, int nbCol, int perc
 		}
 	}
     // Génération des mines
+	srand((unsigned int)time(NULL));
     int nbMines = nbRow * nbCol * percent/100;
 	int nbSetMines = 0;
 	int x, y;
@@ -228,7 +214,7 @@ int SceneInit(int sceneArray[][SCENE_NB_COL_MAX], int nbRow, int nbCol, int perc
 					for (int x=-1; x<=1; x++){
 						// On vérifie les collisions
 						if(  (k+y)>0 && (m+x)>0 || (k+y)<nbRow && (m+x)<nbCol ) {
-							if (sceneArray[k+x][m+y] == 9){
+							if (sceneArray[k+y][m+x] == 9){
 								sceneArray[k][m]++;
 							}
 						}						
@@ -248,6 +234,7 @@ int SceneInit(int sceneArray[][SCENE_NB_COL_MAX], int nbRow, int nbCol, int perc
 		}
 	}
 	nbCellsToDiscover-=nbMines;
+	return nbCellsToDiscover;
 }
 
 int GetCommand(int *pIRow, int *pICol){
@@ -305,6 +292,7 @@ int GetCommand(int *pIRow, int *pICol){
 
 int SceneDiscoverCell(int sceneArray[][SCENE_NB_COL_MAX], int nbRow, int nbCol, int atRow, int atCol){
 	int nbDiscoversCells = 0;
+	nbDiscoversCells++;
 
 	if (sceneArray[atRow][atCol] < SCENE_CELL_MASK_OFFSET){
 		return 0;
@@ -319,26 +307,31 @@ int SceneDiscoverCell(int sceneArray[][SCENE_NB_COL_MAX], int nbRow, int nbCol, 
 			return 1;
 		}
 		if (sceneArray[atRow][atCol] == 0){
-				// Recherche
-				// x : Numéro de colonne relative à la case sélectionnée
-				// y : Numéro de ligne relative à la case sélectionnée
-				for (int y=-1; y<=1; y++){
-					for (int x=-1; x<=1; x++){
-						// On vérifie les collisions
-						if(  (atRow+y)>0 && (atCol+x)>0 || (atRow+y)<nbRow && (atCol+x)<nbCol ) {
-							nbDiscoversCells++;
-							if (sceneArray[atRow+x][atCol+y] > 9){
-								sceneArray[atRow+y][atCol+x] = sceneArray[atRow+y][atCol+x] % 10;
-								if (sceneArray[atRow+(y)][atCol+(x)] == 0){
-									SceneDiscoverCell(sceneArray, nbRow, nbCol, atRow+(x), atCol+(y));
-								}			
+			// Recherche
+			// x : Numéro de colonne relative à la case sélectionnée
+			// y : Numéro de ligne relative à la case sélectionnée
+			for (int y=-1; y<=1; y++){
+				for (int x=-1; x<=1; x++){
+					// On vérifie les collisions
+					if ( (atRow+y>=0) && (atCol+x>=0) && (atRow+y<nbRow) && (atCol+x<nbCol) ) {
+						nbDiscoversCells++;
+						// Si la case n'est plus masquée, elle est déjà découverte donc on décrémente nbDiscoversCells
+						if (sceneArray[atRow+y][atCol+x] < SCENE_CELL_MASK_OFFSET) (nbDiscoversCells--);
+						if (sceneArray[atRow+y][atCol+x] > 9){
+							//nbDiscoversCells++;
+							sceneArray[atRow+y][atCol+x] = sceneArray[atRow+y][atCol+x] % 10;
+							if (sceneArray[atRow+(y)][atCol+(x)] == 0){
+								//nbDiscoversCells++;
+								SceneDiscoverCell(sceneArray, nbRow, nbCol, atRow+(y), atCol+(x));
 							}			
-						}
+						}			
 					}
 				}
-			return nbDiscoversCells;
+			}
+			
 		}
 	}
+	return nbDiscoversCells;
 }
 
 void SceneMaskCells(int sceneArray[][SCENE_NB_COL_MAX], int nbRow, int nbCol){
@@ -357,11 +350,9 @@ void SceneUnmaskCells(int sceneArray[][SCENE_NB_COL_MAX], int nbRow, int nbCol){
 			}
 			else if (sceneArray[k][m]>=SCENE_CELL_MARK_M_OFFSET && sceneArray[k][m] < SCENE_CELL_MARK_I_OFFSET){
 				sceneArray[k][m] -= SCENE_CELL_MARK_M_OFFSET;
-				sceneArray[k][m] -= SCENE_CELL_MASK_OFFSET;
 			}
 			else if (sceneArray[k][m]>=SCENE_CELL_MARK_I_OFFSET){
 				sceneArray[k][m] -= SCENE_CELL_MARK_I_OFFSET;
-				sceneArray[k][m] -= SCENE_CELL_MASK_OFFSET;
 			}
 		}
 	}
