@@ -59,9 +59,11 @@ int main(int argc, char*argv[]){
 	int resultOfGC;
 	int nbDiscoversCells = 0;
 
-    int nbCellsToDiscover = SceneInit(sceneArray, nbRow, nbCol, minePercent);
+	int nbCellsToDiscover = SceneInit(sceneArray, nbRow, nbCol, minePercent);
+	int nbCellsToDiscoverAtStart = nbCellsToDiscover;
+
 	while (nbCellsToDiscover>0){
-		printf("\nNombre de cellules découvertes à ce tour: %d\n", nbDiscoversCells);
+		printf("\nNombre de cellules découvertes : %d\n", nbDiscoversCells);
 		printf("Nombre de cellules à découvrir : %d\n", nbCellsToDiscover);
 		SceneDisplay(sceneArray, nbRow, nbCol);
 		do{
@@ -79,7 +81,7 @@ int main(int argc, char*argv[]){
 					break;
 				}
 				nbDiscoversCells = SceneDiscoverCell(sceneArray, nbRow, nbCol, iRow, iCol);
-				nbCellsToDiscover-=nbDiscoversCells;
+				nbCellsToDiscover = nbCellsToDiscoverAtStart - nbDiscoversCells;
 				if (nbDiscoversCells == -1){
 					SceneUnmaskCells(sceneArray, nbRow, nbCol);
 					SceneDisplay(sceneArray, nbRow, nbCol);
@@ -151,10 +153,10 @@ void SceneDisplay(int sceneArray[][SCENE_NB_COL_MAX], int nbRow, int nbCol){
 		// Affichage des éléments
 		for(m=0;m<nbCol;m++){
 			if (sceneArray[k][m]<SCENE_CELL_MASK_OFFSET){
-				if (sceneArray[k][m] == 0) {
+				if (sceneArray[k][m] == SCENE_CELL_VOID_VALUE) {
 					printf(" %c ", SCENE_CELL_VOID_CHAR);
 				}
-				else if (sceneArray[k][m] == 9) {
+				else if (sceneArray[k][m] == SCENE_MINE_VALUE) {
 					printf(" %c ", SCENE_MINE_CHAR);
 				}
 				else {
@@ -225,7 +227,7 @@ int SceneInit(int sceneArray[][SCENE_NB_COL_MAX], int nbRow, int nbCol, int perc
 	// Completion des cases adjacentes aux mines
 	for(int k=0;k<nbRow;k++){
 		for(int m=0;m<nbCol;m++){
-			if (sceneArray[k][m] == 0){
+			if (sceneArray[k][m] == SCENE_CELL_VOID_VALUE){
 				// Recherche
 				// x : Numéro de colonne relative à la case sélectionnée
 				// y : Numéro de ligne relative à la case sélectionnée
@@ -310,44 +312,43 @@ int GetCommand(int *pIRow, int *pICol){
 }
 
 int SceneDiscoverCell(int sceneArray[][SCENE_NB_COL_MAX], int nbRow, int nbCol, int atRow, int atCol){
-	int nbDiscoversCells = 0;
-	nbDiscoversCells++;
-
+	static int nbDiscoversCells = 0;
+	
+	// Si la case est déjà découverte
 	if (sceneArray[atRow][atCol] < SCENE_CELL_MASK_OFFSET){
 		return 0;
 	}
 	else {
+		// On démasque la case
 		sceneArray[atRow][atCol]-=SCENE_CELL_MASK_OFFSET;
+		nbDiscoversCells++;
 		// Si il s'agit d'une mine
-		if (sceneArray[atRow][atCol] == 9) {
+		if (sceneArray[atRow][atCol] == SCENE_MINE_VALUE) {
 			return -1;
 		}
-		if (sceneArray[atRow][atCol] > 0){
+		// Si la case a une valeur d'adjacence non nulle
+		if (sceneArray[atRow][atCol] > SCENE_CELL_VOID_VALUE){
 			return 1;
 		}
-		if (sceneArray[atRow][atCol] == 0){
+		// Si la case vaut 0
+		if (sceneArray[atRow][atCol] == SCENE_CELL_VOID_VALUE){
 			// Recherche
-			// x : Numéro de colonne relative à la case sélectionnée
-			// y : Numéro de ligne relative à la case sélectionnée
+			// x : Coordonnée de colonne relative à la case sélectionnée
+			// y : Coordonnée de ligne relative à la case sélectionnée
 			for (int y=-1; y<=1; y++){
 				for (int x=-1; x<=1; x++){
 					// On vérifie les collisions
 					if ( (atRow+y>=0) && (atCol+x>=0) && (atRow+y<nbRow) && (atCol+x<nbCol) ) {
-						nbDiscoversCells++;
-						// Si la case n'est plus masquée, elle est déjà découverte donc on décrémente nbDiscoversCells
-						if (sceneArray[atRow+y][atCol+x] < SCENE_CELL_MASK_OFFSET) (nbDiscoversCells--);
-						if (sceneArray[atRow+y][atCol+x] > 9){
-							//nbDiscoversCells++;
-							sceneArray[atRow+y][atCol+x] = sceneArray[atRow+y][atCol+x] % 10;
-							if (sceneArray[atRow+(y)][atCol+(x)] == 0){
-								//nbDiscoversCells++;
+						// Si la case est masquée
+						if (sceneArray[atRow+y][atCol+x] >= SCENE_CELL_MASK_OFFSET){
+							// Si la case vaut 0 (on rajoute l'offset car la case testée n'est pas encore démasquée)
+							if (sceneArray[atRow+y][atCol+x] == (SCENE_CELL_VOID_VALUE + SCENE_CELL_MASK_OFFSET) ){
 								SceneDiscoverCell(sceneArray, nbRow, nbCol, atRow+(y), atCol+(x));
-							}			
-						}			
+							}
+						}	
 					}
 				}
 			}
-			
 		}
 	}
 	return nbDiscoversCells;
